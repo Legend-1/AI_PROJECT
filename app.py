@@ -1,18 +1,41 @@
 import logging
+import os
+from pathlib import Path
 from flask import Flask, render_template, request, jsonify
 import requests
 from datetime import datetime
+# app.py (add CORS support)
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for React frontend
+
+# ... rest of your code remains the same
+
+
+def load_env_file(env_path):
+    """Loads KEY=VALUE pairs from a .env file into process environment."""
+    if not env_path.exists():
+        return
+
+    for line in env_path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_env_file(Path(__file__).with_name('.env'))
 
 # --- CONFIGURATION ---
-NEWS_API_KEY = '6cf399304bc249118d5d70b43950d33b'
-GEMINI_API_KEY = 'AIzaSyBwYG8mNIrR_qMdZkQVzec03NizwpMvR5I'
+NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
 NEWS_URL = 'https://newsapi.org/v2/everything'
 
 # FIXED: Updated model name from gemini-1.5-flash to gemini-2.0-flash
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -112,6 +135,28 @@ def summarize_endpoint():
     summary_points = generate_ai_summary(text_content)
 
     return jsonify({'summary': summary_points})
+
+# Add this to your app.py
+
+@app.route('/api/search', methods=['GET'])
+def api_search():
+    """API endpoint for React frontend"""
+    topic = request.args.get('topic')
+    date_filter = request.args.get('date')
+    country_filter = request.args.get('country')
+
+    if not topic:
+        return jsonify({'error': 'Please enter a topic'}), 400
+
+    articles = fetch_news(topic, date_filter, country_filter)
+
+    if articles is None:
+        return jsonify({'error': 'Failed to fetch news'}), 500
+
+    if not articles:
+        return jsonify({'error': 'No articles found'}), 404
+
+    return jsonify({'articles': articles})
 
 if __name__ == '__main__':
     app.run(debug=True)

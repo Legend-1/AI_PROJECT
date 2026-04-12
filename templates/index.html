@@ -3,128 +3,1353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital News Assistant</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>AI News Aggregator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f4f6f9; }
-        .news-card { transition: transform 0.2s; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .news-card:hover { transform: translateY(-5px); }
-        .summary-box { background-color: #e9ecef; border-left: 5px solid #0d6efd; display: none; }
-        .loader { display: none; font-size: 0.9rem; color: #666; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary-color: #8b5cf6;
+            --accent-color: #ec4899;
+            --background: #0a0e1a;
+            --background-secondary: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --surface-hover: #475569;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --glow: rgba(99, 102, 241, 0.4);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 12px 30px rgba(99, 102, 241, 0.6);
+            }
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .beta-badge {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Search Section */
+        .search-section {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+        }
+
+        .search-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-form {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        label i {
+            color: var(--primary-color);
+        }
+
+        input, select {
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(15, 23, 42, 1);
+            box-shadow: 
+                0 0 0 4px rgba(99, 102, 241, 0.1),
+                0 8px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 1.125rem 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 15px 40px rgba(99, 102, 241, 0.4),
+                0 0 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 500;
+            animation: slideInRight 0.4s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid var(--error);
+            color: #fca5a5;
+        }
+
+        .alert i {
+            font-size: 1.25rem;
+        }
+
+        /* Filter Chips */
+        .active-filters {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .filter-chip {
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid var(--primary-color);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Articles Grid */
+        .articles-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .articles-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .articles-count span {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--surface);
+            padding: 0.375rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .view-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .article-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .article-card:nth-child(1) { animation-delay: 0.1s; }
+        .article-card:nth-child(2) { animation-delay: 0.2s; }
+        .article-card:nth-child(3) { animation-delay: 0.3s; }
+        .article-card:nth-child(4) { animation-delay: 0.4s; }
+        .article-card:nth-child(5) { animation-delay: 0.5s; }
+        .article-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .article-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .article-card:hover::before {
+            opacity: 1;
+        }
+
+        .article-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(99, 102, 241, 0.3),
+                0 0 40px rgba(99, 102, 241, 0.2);
+            border-color: var(--primary-color);
+        }
+
+        .article-image-container {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            background: var(--surface-light);
+        }
+
+        .article-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .article-card:hover .article-image {
+            transform: scale(1.1);
+        }
+
+        .article-image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        }
+
+        .article-content {
+            padding: 1.75rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .article-source {
+            color: var(--primary-color);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .source-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .bookmark-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0.5rem;
+        }
+
+        .bookmark-btn:hover {
+            color: var(--warning);
+            transform: scale(1.2);
+        }
+
+        .bookmark-btn.bookmarked {
+            color: var(--warning);
+        }
+
+        .article-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .article-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+            flex: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding-top: 1.25rem;
+            border-top: 1px solid rgba(99, 102, 241, 0.2);
+            margin-bottom: 1.25rem;
+        }
+
+        .article-meta i {
+            color: var(--primary-color);
+        }
+
+        .article-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .btn-secondary {
+            padding: 0.75rem 1.25rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-primary);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-secondary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .btn-secondary:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-secondary span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-secondary i {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Summary Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            padding: 2rem;
+            overflow-y: auto;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 24px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(99, 102, 241, 0.2);
+            animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 2rem;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+        }
+
+        .modal-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .modal-title i {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--error);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: var(--surface-light);
+            border-radius: 10px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        .summary-loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .summary-points {
+            list-style: none;
+        }
+
+        .summary-points li {
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            position: relative;
+            padding-left: 3.5rem;
+            transition: all 0.3s ease;
+            animation: slideInLeft 0.4s ease-out backwards;
+        }
+
+        .summary-points li:nth-child(1) { animation-delay: 0.1s; }
+        .summary-points li:nth-child(2) { animation-delay: 0.2s; }
+        .summary-points li:nth-child(3) { animation-delay: 0.3s; }
+        .summary-points li:nth-child(4) { animation-delay: 0.4s; }
+        .summary-points li:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .summary-points li:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateX(8px);
+        }
+
+        .summary-points li::before {
+            content: counter(item);
+            counter-increment: item;
+            position: absolute;
+            left: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .summary-points {
+            counter-reset: item;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .empty-state-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--primary-color);
+            border: 2px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .empty-state h3 {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--surface) 25%, var(--surface-light) 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .stats-bar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .articles-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .articles-header {
+                flex-direction: column;
+                align-items: start;
+                gap: 1rem;
+            }
+
+            .search-title {
+                font-size: 1.5rem;
+            }
+
+            .modal-content {
+                margin: 1rem;
+            }
+        }
+
+        /* Scroll to Top Button */
+        .scroll-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+
+        .scroll-top.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .scroll-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.5);
+        }
     </style>
 </head>
 <body>
-
-<div class="container py-5">
-    <h1 class="text-center mb-4">📰 Digital News Assistant</h1>
-
-    <div class="card p-4 mb-5">
-        <form action="/search" method="POST" class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Topic</label>
-                <input type="text" name="topic" class="form-control" placeholder="e.g. Technology, Sports" value="{{ last_topic }}" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Filter Date (From)</label>
-                <input type="date" name="date" class="form-control" max="{{ today }}" value="{{ last_date }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Country/Region</label>
-                <input type="text" name="country" class="form-control" placeholder="e.g. India, USA" value="{{ last_country }}">
-            </div>
-            <div class="col-12 text-center mt-3">
-                <button type="submit" class="btn btn-primary w-50">Find News</button>
-            </div>
-        </form>
-    </div>
-
-    {% if error %}
-        <div class="alert alert-danger" role="alert">{{ error }}</div>
-    {% endif %}
-
-    <div class="row g-4">
-        {% for article in articles %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card news-card h-100 p-3 d-flex flex-column">
-                {% if article.urlToImage %}
-                <img src="{{ article.urlToImage }}" class="card-img-top mb-3" alt="News Image" style="height: 200px; object-fit: cover; border-radius: 5px;">
-                {% endif %}
-                
-                <h5 class="card-title">{{ article.title }}</h5>
-                <p class="card-text text-muted small">{{ article.publishedAt[:10] }} | {{ article.source.name }}</p>
-                <p class="card-text">{{ article.description }}</p>
-                
-                <div class="mt-auto">
-                    <a href="{{ article.url }}" target="_blank" class="btn btn-outline-dark btn-sm">Read Full</a>
-                    
-                    <div class="article-content d-none">
-                        {{ article.title }}. {{ article.description }}. {{ article.content }}
-                    </div>
-                    
-                    <button class="btn btn-success btn-sm float-end" onclick="summarizeNews(this)">
-                        ✨ Summarize
-                    </button>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
                 </div>
-
-                <div class="summary-box mt-3 p-2 rounded">
-                    <div class="loader text-primary">
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        Asking AI to summarize...
+                <div class="logo-text">
+                    <div>AI News Aggregator</div>
+                    <div class="tagline">
+                        Powered by Gemini AI
+                        <span class="beta-badge">Beta</span>
                     </div>
-                    <ul class="summary-list mb-0 small ps-3"></ul>
+                </div>
+            </div>
+            
+            <div class="stats-bar">
+                <div class="stat">
+                    <div class="stat-value" id="articlesCount">0</div>
+                    <div class="stat-label">Articles</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">AI</div>
+                    <div class="stat-label">Powered</div>
                 </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
-</div>
+    </header>
 
-<script>
-    async function summarizeNews(button) {
-        // Find the parent card elements
-        const cardBody = button.closest('.card');
-        const contentText = cardBody.querySelector('.article-content').innerText;
-        const summaryBox = cardBody.querySelector('.summary-box');
-        const summaryList = summaryBox.querySelector('.summary-list');
-        const loader = summaryBox.querySelector('.loader');
-
-        // Toggle UI
-        if (summaryBox.style.display === 'block') {
-            summaryBox.style.display = 'none';
-            return;
-        }
-        
-        summaryBox.style.display = 'block';
-        summaryList.innerHTML = ''; // Clear previous
-        loader.style.display = 'block';
-
-        try {
-            const response = await fetch('/summarize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: contentText })
-            });
-
-            const data = await response.json();
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-section">
+            <h2 class="search-title">
+                <i class="fas fa-search"></i> Discover Latest News
+            </h2>
             
-            loader.style.display = 'none';
+            {% if error %}
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ error }}
+            </div>
+            {% endif %}
 
-            if (data.summary) {
-                data.summary.forEach(point => {
-                    const li = document.createElement('li');
-                    li.textContent = point;
-                    summaryList.appendChild(li);
-                });
-            } else {
-                summaryList.innerHTML = '<li class="text-danger">Could not generate summary.</li>';
+            <form method="POST" action="/search" class="search-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-tag"></i> Topic
+                        </label>
+                        <input 
+                            type="text" 
+                            name="topic" 
+                            placeholder="Search for topics like AI, Climate, Technology..." 
+                            value="{{ last_topic or '' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-calendar-alt"></i> From Date
+                        </label>
+                        <input 
+                            type="date" 
+                            name="date" 
+                            value="{{ last_date or '' }}"
+                            max="{{ today }}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-globe-americas"></i> Country
+                        </label>
+                        <select name="country">
+                            <option value="">All Countries</option>
+                            <option value="USA" {% if last_country == 'USA' %}selected{% endif %}>🇺🇸 USA</option>
+                            <option value="UK" {% if last_country == 'UK' %}selected{% endif %}>🇬🇧 UK</option>
+                            <option value="India" {% if last_country == 'India' %}selected{% endif %}>🇮🇳 India</option>
+                            <option value="Canada" {% if last_country == 'Canada' %}selected{% endif %}>🇨🇦 Canada</option>
+                            <option value="Australia" {% if last_country == 'Australia' %}selected{% endif %}>🇦🇺 Australia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn">
+                    <i class="fas fa-rocket"></i>
+                    <span>Search News</span>
+                </button>
+
+                {% if last_topic or last_date or last_country %}
+                <div class="active-filters">
+                    {% if last_topic %}
+                    <span class="filter-chip">
+                        <i class="fas fa-tag"></i>
+                        {{ last_topic }}
+                    </span>
+                    {% endif %}
+                    {% if last_date %}
+                    <span class="filter-chip">
+                        <i class="fas fa-calendar"></i>
+                        From {{ last_date }}
+                    </span>
+                    {% endif %}
+                    {% if last_country %}
+                    <span class="filter-chip">
+                        <i class="fas fa-globe"></i>
+                        {{ last_country }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Articles Grid -->
+        {% if articles %}
+        <div class="articles-header">
+            <div class="articles-count">
+                Found <span>{{ articles|length }}</span> articles
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active">
+                    <i class="fas fa-th"></i>
+                </button>
+                <button class="view-btn">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="articles-grid">
+            {% for article in articles %}
+            <article class="article-card">
+                <div class="article-image-container">
+                    {% if article.urlToImage %}
+                    <img src="{{ article.urlToImage }}" alt="{{ article.title }}" class="article-image">
+                    {% else %}
+                    <div class="article-image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--surface-light), var(--surface));">
+                        <i class="fas fa-image" style="font-size: 4rem; color: var(--text-muted);"></i>
+                    </div>
+                    {% endif %}
+                    <div class="article-image-overlay"></div>
+                </div>
+
+                <div class="article-content">
+                    <div class="article-header">
+                        <div class="article-source">
+                            <div class="source-icon">
+                                <i class="fas fa-newspaper"></i>
+                            </div>
+                            {{ article.source.name or 'Unknown Source' }}
+                        </div>
+                        <button class="bookmark-btn" onclick="toggleBookmark(this)">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                    
+                    <h3 class="article-title">{{ article.title }}</h3>
+                    
+                    <p class="article-description">
+                        {{ article.description or 'No description available for this article.' }}
+                    </p>
+
+                    <div class="article-meta">
+                        <span>
+                            <i class="fas fa-clock"></i>
+                            {{ article.publishedAt[:10] if article.publishedAt else 'Unknown' }}
+                        </span>
+                        {% if article.author %}
+                        <span>
+                            <i class="fas fa-user-edit"></i>
+                            {{ article.author[:20] }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="article-actions">
+                        <button class="btn-secondary" onclick="summarizeArticle('{{ article.description or article.title }}')">
+                            <i class="fas fa-magic"></i>
+                            <span>AI Summary</span>
+                        </button>
+                        <a href="{{ article.url }}" target="_blank" class="btn-secondary">
+                            <i class="fas fa-external-link-alt"></i>
+                            <span>Read Full</span>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% elif not error %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-newspaper"></i>
+            </div>
+            <h3>Ready to Explore?</h3>
+            <p>Enter a topic above to discover the latest news articles from around the world</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Summary Modal -->
+    <div id="summaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-brain"></i>
+                    <span>AI-Powered Summary</span>
+                </h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="summaryContent">
+                <div class="summary-loading">
+                    <div class="spinner"></div>
+                    <p>Generating intelligent summary...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+        // Update articles count
+        document.addEventListener('DOMContentLoaded', function() {
+            const articlesCount = document.querySelectorAll('.article-card').length;
+            const countElement = document.getElementById('articlesCount');
+            if (countElement) {
+                animateCount(countElement, articlesCount);
             }
-        } catch (error) {
-            console.error(error);
-            loader.style.display = 'none';
-            summaryList.innerHTML = '<li class="text-danger">Error connecting to server.</li>';
-        }
-    }
-</script>
+        });
 
+        function animateCount(element, target) {
+            let current = 0;
+            const increment = target / 50;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(current);
+                }
+            }, 20);
+        }
+
+        function summarizeArticle(text) {
+            const modal = document.getElementById('summaryModal');
+            const content = document.getElementById('summaryContent');
+            
+            modal.classList.add('active');
+            content.innerHTML = `
+                <div class="summary-loading">
+                    <div class="spinner"></div>
+                    <p>Generating intelligent summary...</p>
+                </div>
+            `;
+
+            fetch('/summarize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.summary) {
+                    const points = data.summary.map(point => 
+                        `<li>${point}</li>`
+                    ).join('');
+                    content.innerHTML = `<ul class="summary-points">${points}</ul>`;
+                } else {
+                    content.innerHTML = `
+                        <div class="alert alert-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Failed to generate summary. Please try again.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                content.innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Error: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('summaryModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('summaryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // ESC key to close modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Bookmark functionality
+        function toggleBookmark(button) {
+            button.classList.toggle('bookmarked');
+            const icon = button.querySelector('i');
+            if (button.classList.contains('bookmarked')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+            }
+        }
+
+        // Scroll to top
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // View toggle
+        const viewButtons = document.querySelectorAll('.view-btn');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                viewButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
 </body>
 </html>
