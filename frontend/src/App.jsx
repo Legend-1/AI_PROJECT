@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import Header from './components/header';
+import './styles/App.css';
+import Header from './components/Header';
 import SearchForm from './components/SearchForm';
 import ArticlesGrid from './components/ArticlesGrid';
 import SummaryModal from './components/SummaryModal';
 import EmptyState from './components/EmptyState';
 
-const API_URL = 'http://localhost:5000';
+const API_BASE = process.env.REACT_APP_API_URL || '';
 
 function App() {
   const [articles, setArticles] = useState([]);
@@ -22,32 +23,19 @@ function App() {
     setArticles([]);
 
     try {
-      const formData = new FormData();
-      formData.append('topic', searchData.topic);
-      if (searchData.date) formData.append('date', searchData.date);
-      if (searchData.country) formData.append('country', searchData.country);
-
-      const response = await axios.post(`${API_URL}/search`, formData);
-      
-      // Parse HTML response to extract articles
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(response.data, 'text/html');
-      
-      // Check for error message
-      const errorDiv = doc.querySelector('.alert-error');
-      if (errorDiv) {
-        setError(errorDiv.textContent.trim());
-        return;
-      }
-
-      // Extract articles (we'll use the API directly instead)
-      const apiResponse = await axios.get(`${API_URL}/api/search`, {
+      const apiResponse = await axios.get(`${API_BASE}/api/search`, {
         params: searchData
       });
       
       setArticles(apiResponse.data.articles || []);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch news. Please try again.');
+      if (err.response) {
+        setError(err.response.data?.error || 'The server rejected the request.');
+      } else if (err.request) {
+        setError('Cannot reach backend. Start Flask on port 5000 and try again.');
+      } else {
+        setError('Unexpected error while fetching news.');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,7 +47,7 @@ function App() {
     setSummary([]);
 
     try {
-      const response = await axios.post(`${API_URL}/summarize`, { text });
+      const response = await axios.post(`${API_BASE}/summarize`, { text });
       setSummary(response.data.summary || []);
     } catch (err) {
       setSummary(['Failed to generate summary. Please try again.']);
