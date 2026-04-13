@@ -30,12 +30,11 @@ load_env_file(Path(__file__).with_name('.env'))
 
 # --- CONFIGURATION ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+LOCAL_LLM_URL = os.getenv('LOCAL_LLM_URL', 'http://127.0.0.1:11434')
+LOCAL_LLM_MODEL = os.getenv('LOCAL_LLM_MODEL', 'gemma3')
+LOCAL_LLM_FALLBACK_MODEL = os.getenv('LOCAL_LLM_FALLBACK_MODEL', 'tinyllama:latest')
 
 NEWS_URL = 'https://newsapi.org/v2/everything'
-
-# FIXED: Updated model name from gemini-1.5-flash to gemini-2.0-flash
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,36 +61,66 @@ def fetch_news(query, from_date=None, country=None):
         return None
 
 def generate_ai_summary(text_content):
-    """Summarizes using a direct HTTP request to Gemini."""
+    """Summarizes using a local LLM endpoint (Ollama + Gemma 3)."""
     try:
-        payload = {
-            "contents": [{
-                "parts": [{
-                    "text": (
-                        "Summarize the following news article into exactly 3 to 4 concise bullet points. "
-                        "Do not use asterisks or dashes. Return sentences separated by newlines.\n\n"
-                        f"Article: {text_content}"
-                    )
-                }]
-            }]
-        }
+        prompt = (
+            "Summarize the following news article into exactly 3 to 4 concise bullet points. "
+            "Do not use asterisks or dashes. Return one point per line.\n\n"
+            f"Article: {text_content}"
+        )
 
         headers = {'Content-Type': 'application/json'}
 
-        response = requests.post(GEMINI_URL, json=payload, headers=headers)
+        models_to_try = [LOCAL_LLM_MODEL]
+        if LOCAL_LLM_FALLBACK_MODEL and LOCAL_LLM_FALLBACK_MODEL != LOCAL_LLM_MODEL:
+            models_to_try.append(LOCAL_LLM_FALLBACK_MODEL)
+
+        response = None
+        for model in models_to_try:
+            payload = {
+                'model': model,
+                'prompt': prompt,
+                'stream': False,
+            }
+            response = requests.post(f"{LOCAL_LLM_URL}/api/generate", json=payload, headers=headers, timeout=120)
+            if response.status_code == 200:
+                break
+
+            error_text = response.text.lower()
+            if 'system memory' in error_text and model != models_to_try[-1]:
+                logging.warning("Model %s could not load due to memory. Trying fallback model.", model)
+                continue
+            break
 
         if response.status_code != 200:
-            logging.error(f"Gemini Error: {response.text}")
+            logging.error(f"Local LLM Error: {response.text}")
             return [f"Error {response.status_code}: {response.text}"]
 
         data = response.json()
 
         try:
-            generated_text = data['candidates'][0]['content']['parts'][0]['text']
-            summary_points = [line.strip() for line in generated_text.split('\n') if line.strip()]
+            generated_text = data.get('response', '')
+            summary_points = []
+            for raw_line in generated_text.split('\n'):
+                cleaned = raw_line.strip(' -*\t')
+                if not cleaned:
+                    continue
+                lowered = cleaned.lower()
+                if (
+                    lowered.startswith('here is')
+                    or lowered.startswith("here's")
+                    or lowered.startswith('summary:')
+                    or ('summary' in lowered and ':' in lowered)
+                ):
+                    continue
+                summary_points.append(cleaned)
+            if not summary_points:
+                return ["Local model returned an empty summary."]
+            if len(summary_points) > 4:
+                summary_points = summary_points[:4]
             return summary_points
         except (KeyError, IndexError):
-            return ["AI returned an empty or unexpected response."]
+            return ["Local AI returned an empty or unexpected response."]
 
     except Exception as e:
         logging.error(f"Summary Connection Error: {e}")
