@@ -17,7 +17,7 @@ const Header = () => {
             <div className="logo-text">AI News Aggregator</div>
             <div className="tagline">
               <FaRobot style={{ marginRight: '0.5rem' }} />
-              Powered by Local Gemma 4
+              Powered by Local Gemma 3
             </div>
           </div>
         </div>
