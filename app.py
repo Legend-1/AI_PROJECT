@@ -150,8 +150,7 @@ def search():
     if not articles:
         return render_template('index.html', error="No articles found.")
 
-    return render_template('index.html', articles=articles,
-                           last_topic=topic, last_date=date_filter, last_country=country_filter)
+    return render_template('index.html', articles=articles, last_topic=topic, last_date=date_filter, last_country=country_filter)
 
 @app.route('/summarize', methods=['POST'])
 def summarize_endpoint():
